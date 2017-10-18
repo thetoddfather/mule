@@ -6,15 +6,21 @@
  */
 package org.mule.runtime.module.extension.internal.config.dsl;
 
+import static java.lang.String.format;
+import static org.mule.runtime.api.i18n.I18nMessageFactory.createStaticMessage;
+import static org.mule.runtime.api.util.NameUtils.hyphenize;
 import static org.mule.runtime.module.extension.internal.config.dsl.ExtensionDefinitionParser.CHILD_ELEMENT_KEY_PREFIX;
 import static org.mule.runtime.module.extension.internal.config.dsl.ExtensionDefinitionParser.CHILD_ELEMENT_KEY_SUFFIX;
 import org.mule.metadata.api.model.ObjectType;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.core.api.MuleContext;
+import org.mule.runtime.core.api.config.ConfigurationException;
 import org.mule.runtime.dsl.api.component.AbstractComponentFactory;
 import org.mule.runtime.dsl.api.component.ObjectFactory;
-import org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver;
+import org.mule.runtime.module.extension.internal.runtime.exception.RequiredParameterNotSetException;
 import org.mule.runtime.module.extension.internal.runtime.objectbuilder.DefaultObjectBuilder;
 import org.mule.runtime.module.extension.internal.runtime.resolver.ObjectTypeParametersResolver;
+import org.mule.runtime.module.extension.internal.runtime.resolver.ParametersResolver;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +43,31 @@ public abstract class AbstractExtensionObjectFactory<T> extends AbstractComponen
   public AbstractExtensionObjectFactory(MuleContext muleContext) {
     this.muleContext = muleContext;
     this.parametersResolver = getParametersResolver(muleContext);
+  }
+
+  @Override
+  public T getObject() throws Exception {
+    try {
+      return super.getObject();
+    } catch (RequiredParameterNotSetException e) {
+      throw handleMissingRequiredParameter(e);
+    }
+  }
+
+  private Exception handleMissingRequiredParameter(RequiredParameterNotSetException e) {
+    String description = getAnnotations().values().stream()
+        .filter(v -> v instanceof ComponentLocation)
+        .map(v -> (ComponentLocation) v)
+        .findFirst()
+        .map(v -> format("Element <%s:%s> in line %s of file %s is missing required parameter '%s'",
+                         v.getComponentIdentifier().getIdentifier().getNamespace(),
+                         v.getComponentIdentifier().getIdentifier().getName(),
+                         v.getLineInFile().map(n -> "" + n).orElse("<UNKNOWN>"),
+                         v.getFileName().orElse("<UNKNOWN>"),
+                         hyphenize(e.getParameterModel().getName())))
+        .orElse(e.getMessage());
+
+    return new ConfigurationException(createStaticMessage(description), e);
   }
 
   protected ParametersResolver getParametersResolver(MuleContext muleContext) {

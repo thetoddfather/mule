@@ -51,6 +51,7 @@ import org.mule.runtime.extension.api.util.ExtensionMetadataTypeUtils;
 import org.mule.runtime.module.extension.internal.loader.ParameterGroupDescriptor;
 import org.mule.runtime.module.extension.internal.loader.java.property.NullSafeModelProperty;
 import org.mule.runtime.module.extension.internal.loader.java.property.ParameterGroupModelProperty;
+import org.mule.runtime.module.extension.internal.runtime.exception.RequiredParameterNotSetException;
 import org.mule.runtime.module.extension.internal.runtime.objectbuilder.DefaultObjectBuilder;
 import org.mule.runtime.module.extension.internal.runtime.objectbuilder.ExclusiveParameterGroupObjectBuilder;
 
@@ -101,7 +102,6 @@ public final class ParametersResolver implements ObjectTypeParametersResolver {
    * @return a {@link ResolverSet}
    */
   public ResolverSet getParametersAsResolverSet(ParameterizedModel model, MuleContext muleContext) throws ConfigurationException {
-
     List<ParameterGroupModel> inlineGroups = getInlineGroups(model.getParameterGroupModels());
     List<ParameterModel> flatParameters = getFlatParameters(inlineGroups, model.getAllParameterModels());
     ResolverSet resolverSet = getParametersAsResolverSet(model, flatParameters, muleContext);
@@ -214,6 +214,8 @@ public final class ParametersResolver implements ObjectTypeParametersResolver {
 
       if (resolver != null) {
         resolverSet.add(parameterName, resolver);
+      } else if (p.isRequired()) {
+        throw new RequiredParameterNotSetException(p);
       }
     });
 
