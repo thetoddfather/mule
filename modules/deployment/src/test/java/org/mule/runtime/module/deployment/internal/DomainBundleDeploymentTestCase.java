@@ -97,11 +97,14 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
 
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
-    assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
-    assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
+    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
+    assertDomainRedeploymentSuccess(dummyDomainFileBuilder.getId());
+    //assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
+    //assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
+    //assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
     assertUndeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
     assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
+    //assertApplicationRedeploymentSuccess(dummyAppDescriptorFileBuilder.getId());
   }
 
   @Test
@@ -130,12 +133,15 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
     domainBundleFileBuilder = new DomainBundleFileBuilder(dummyDomainFileBuilder).containing(applicationFileBuilder1);
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
+    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
+    //assertDomainRedeploymentSuccess(domainBundleFileBuilder.getId());
     assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
     assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
     assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
     assertUndeploymentSuccess(applicationDeploymentListener, applicationFileBuilder1.getId());
     assertApplicationDeploymentSuccess(applicationDeploymentListener, applicationFileBuilder1.getId());
     assertUndeploymentSuccess(applicationDeploymentListener, applicationFileBuilder2.getId());
+    //assertApplicationRedeploymentSuccess(applicationFileBuilder1.getId());
   }
 
   @Test
@@ -161,11 +167,14 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
     domainBundleFileBuilder = new DomainBundleFileBuilder(dummyDomainFileBuilder).containing(applicationFileBuilder);
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
+    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
+    //assertDomainRedeploymentFailure(domainBundleFileBuilder.getId());
     assertDeploymentFailure(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
     assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
     assertDeploymentFailure(domainDeploymentListener, dummyDomainFileBuilder.getId());
     assertUndeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
     assertDeploymentFailure(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
+    //assertApplicationRedeploymentFailure(dummyAppDescriptorFileBuilder.getId());
   }
 
   private void addDomainBundleFromBuilder(DomainBundleFileBuilder domainBundleFileBuilder) throws Exception {

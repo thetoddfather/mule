@@ -155,12 +155,26 @@ public class DomainBundleArchiveDeployer {
 
     String domainName = getBaseName(domainFileNames[0]);
     Domain domain = findDomain(domainName);
-    if (domain != null) {
-      domainDeployer.undeployArtifact(domainName);
-      unzip(domainFile, domain.getLocation());
-    }
+    boolean isRedeploy = domain != null;
+    try {
+      if (isRedeploy) {
+        // TODO(pablo.kraan): need the domain deploymentListener instead of the domainBundle's one
+        deploymentListener.onRedeploymentStart(domainName);
+        domainDeployer.undeployArtifact(domainName);
+        unzip(domainFile, domain.getLocation());
+      }
 
-    domainDeployer.deployPackagedArtifact(domainFile.toURI(), empty());
+      domainDeployer.deployPackagedArtifact(domainFile.toURI(), empty());
+
+      if (isRedeploy) {
+        deploymentListener.onRedeploymentSuccess(domainName);
+      }
+    } catch (RuntimeException |IOException e) {
+      if (isRedeploy) {
+        deploymentListener.onRedeploymentFailure(domainName, e);
+        throw e;
+      }
+    }
   }
 
   private File unzipDomainBundle(File bundleFile) throws IOException {

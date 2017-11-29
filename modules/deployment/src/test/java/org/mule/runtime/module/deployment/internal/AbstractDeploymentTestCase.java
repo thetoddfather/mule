@@ -157,7 +157,7 @@ import org.mockito.verification.VerificationMode;
  * <p>
  * Provides a set of test artifacts and resources to use on different test classes.
  */
-public abstract class AbstractDeploymentTestCase extends AbstractMuleTestCase {
+public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase {
 
   protected static final int FILE_TIMESTAMP_PRECISION_MILLIS = 1000;
   protected static final String FLOW_PROPERTY_NAME = "flowName";
@@ -573,25 +573,65 @@ public abstract class AbstractDeploymentTestCase extends AbstractMuleTestCase {
 
   private void assertRedeploymentSuccess(DeploymentListener listener, String artifactName,
                                          Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+    assertRedeploymentStart(listener, artifactName);
     assertDeploymentSuccess(listener, artifactName);
+    assertRedeploymentSuccess(listener, artifactName);
     verify(listener, times(1)).onUndeploymentStart(artifactName);
     verify(listener, times(1)).onUndeploymentSuccess(artifactName);
 
     assertArtifactIsNotRegisteredAsZombie(artifactName, zombieSupplier.get());
   }
 
+  private void assertRedeploymentSuccess(DeploymentListener listener, String artifactName) {
+    Prober prober = new PollingProber(DEPLOYMENT_TIMEOUT, 100);
+    prober.check(new JUnitProbe() {
+
+      @Override
+      protected boolean test() throws Exception {
+        verify(listener, times(1)).onRedeploymentSuccess(artifactName);
+        return true;
+      }
+
+      @Override
+      public String describeFailure() {
+        return "Failed to redeploy artifact: " + artifactName + System.lineSeparator() + super.describeFailure();
+      }
+    });
+  }
+
   private void assertRedeploymentFailure(DeploymentListener listener, String artifactName,
                                          Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+    assertRedeploymentStart(listener, artifactName);
     assertDeploymentFailure(listener, artifactName);
+    assertRedeploymentFailure(listener, artifactName);
     verify(listener, times(1)).onUndeploymentStart(artifactName);
     verify(listener, times(1)).onUndeploymentSuccess(artifactName);
 
     assertArtifactIsRegisteredAsZombie(artifactName, zombieSupplier.get());
   }
 
+  private void assertRedeploymentFailure(DeploymentListener listener, String artifactName) {
+    Prober prober = new PollingProber(DEPLOYMENT_TIMEOUT, 100);
+    prober.check(new JUnitProbe() {
+
+      @Override
+      protected boolean test() throws Exception {
+        verify(listener).onDeploymentFailure(eq(artifactName), any(Throwable.class));
+        return true;
+      }
+
+      @Override
+      public String describeFailure() {
+        return "Failed to redeploy application: " + artifactName + System.lineSeparator() + super.describeFailure();
+      }
+    });
+  }
+
   private void assertFailedArtifactRedeploymentSuccess(DeploymentListener listener, String artifactName,
                                                        Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+    assertRedeploymentStart(listener, artifactName);
     assertDeploymentSuccess(listener, artifactName);
+    assertRedeploymentSuccess(listener, artifactName);
     verify(listener, never()).onUndeploymentStart(artifactName);
     verify(listener, never()).onUndeploymentSuccess(artifactName);
 
@@ -600,7 +640,9 @@ public abstract class AbstractDeploymentTestCase extends AbstractMuleTestCase {
 
   private void assertFailedArtifactRedeploymentFailure(DeploymentListener listener, String artifactName,
                                                        Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+    assertRedeploymentStart(listener, artifactName);
     assertDeploymentFailure(listener, artifactName);
+    assertRedeploymentFailure(listener, artifactName);
     verify(listener, times(0)).onUndeploymentStart(artifactName);
     verify(listener, times(0)).onUndeploymentSuccess(artifactName);
 
@@ -801,6 +843,23 @@ public abstract class AbstractDeploymentTestCase extends AbstractMuleTestCase {
       @Override
       public String describeFailure() {
         return "Application deployment was supposed to fail for: " + artifactName + super.describeFailure();
+      }
+    });
+  }
+
+  protected void assertRedeploymentStart(final DeploymentListener listener, final String artifactName) {
+    Prober prober = new PollingProber(DEPLOYMENT_TIMEOUT, 100);
+    prober.check(new JUnitProbe() {
+
+      @Override
+      public boolean test() {
+        verify(listener).onRedeploymentStart(eq(artifactName));
+        return true;
+      }
+
+      @Override
+      public String describeFailure() {
+        return "Application redeployment was supposed to start for: " + artifactName + super.describeFailure();
       }
     });
   }

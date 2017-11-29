@@ -224,14 +224,24 @@ public class DefaultArchiveDeployer<T extends DeployableArtifact> implements Arc
 
     // check if this artifact is running first, undeployArtifact it then
     T artifact = (T) find(artifacts, new BeanPropertyValueEqualsPredicate(ARTIFACT_NAME_PROPERTY, artifactName));
-    if (artifact != null) {
+    boolean isRedeploy = artifact != null;
+    try {
+    if (isRedeploy) {
+      deploymentListener.onRedeploymentStart(artifactName);
       deploymentTemplate.preRedeploy(artifact);
       undeployArtifact(artifactName);
     }
 
     T deployedArtifact = deployPackagedArtifact(artifactUri, deploymentProperties);
-    deploymentTemplate.postRedeploy(deployedArtifact);
+    if (isRedeploy) {
+      deploymentTemplate.postRedeploy(deployedArtifact);
+      deploymentListener.onRedeploymentSuccess(artifactName);
+    }
     return deployedArtifact;
+    } catch (RuntimeException e ) {
+      deploymentListener.onRedeploymentFailure(artifactName, e);
+      throw e;
+    }
   }
 
   private T deployExplodedApp(String addedApp, Optional<Properties> deploymentProperties) throws DeploymentException {
@@ -433,6 +443,8 @@ public class DefaultArchiveDeployer<T extends DeployableArtifact> implements Arc
       logger.info(miniSplash(format("Redeploying artifact '%s'", artifact.getArtifactName())));
     }
 
+    deploymentListener.onRedeploymentStart(artifact.getArtifactName());
+
     if (!artifactZombieMap.containsKey(artifact.getArtifactName())) {
       deploymentListener.onUndeploymentStart(artifact.getArtifactName());
       try {
@@ -440,6 +452,7 @@ public class DefaultArchiveDeployer<T extends DeployableArtifact> implements Arc
         deploymentListener.onUndeploymentSuccess(artifact.getArtifactName());
       } catch (Throwable e) {
         deploymentListener.onUndeploymentFailure(artifact.getArtifactName(), e);
+        deploymentListener.onRedeploymentFailure(artifact.getArtifactName(), e);
       }
     }
 
@@ -453,6 +466,7 @@ public class DefaultArchiveDeployer<T extends DeployableArtifact> implements Arc
       deployer.deploy(artifact);
       artifactArchiveInstaller.createAnchorFile(artifact.getArtifactName());
       deploymentListener.onDeploymentSuccess(artifact.getArtifactName());
+      deploymentListener.onRedeploymentSuccess(artifact.getArtifactName());
     } catch (Throwable t) {
       try {
         logDeploymentFailure(t, artifact.getArtifactName());
@@ -464,9 +478,11 @@ public class DefaultArchiveDeployer<T extends DeployableArtifact> implements Arc
         throw new DeploymentException(createStaticMessage(msg), t);
       } finally {
         deploymentListener.onDeploymentFailure(artifact.getArtifactName(), t);
+        deploymentListener.onRedeploymentFailure(artifact.getArtifactName(), t);
       }
     }
 
+    // TODO(pablo.kraan): why this is not done before sending the success notifications?
     artifactZombieMap.remove(artifact.getArtifactName());
   }
 

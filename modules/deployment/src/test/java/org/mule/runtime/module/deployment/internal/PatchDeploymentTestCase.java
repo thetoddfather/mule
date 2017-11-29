@@ -78,6 +78,7 @@ public class PatchDeploymentTestCase extends AbstractDeploymentTestCase {
         .withVersion(patchedVersion);
 
     addPackedAppFromBuilder(patchedApp);
+    // TODO(pablo.kraan): there is something wrong here... is a redeploy? what should be the artifactName that is notified?
     assertUndeploymentSuccess(applicationDeploymentListener, deployedApp.getId());
     assertApplicationDeploymentSuccess(applicationDeploymentListener, patchedApp.getId());
     assertThat(deploymentService.getApplications(), hasSize(1));
@@ -177,6 +178,7 @@ public class PatchDeploymentTestCase extends AbstractDeploymentTestCase {
         .definedBy("empty-domain-config.xml").withVersion(patchedVersion);
 
     addPackedDomainFromBuilder(patchedDomain);
+    // TODO(pablo.kraan): there is something wrong here... is a redeploy? what should be the artifactName that is notified?
     assertUndeploymentSuccess(domainDeploymentListener, deployedDomain.getId());
     assertDeploymentSuccess(domainDeploymentListener, patchedDomain.getId());
     assertThat(deploymentService.getDomains(), hasSize(2));
