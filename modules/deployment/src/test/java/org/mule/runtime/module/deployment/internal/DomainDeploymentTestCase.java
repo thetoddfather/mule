@@ -1136,6 +1136,38 @@ public class DomainDeploymentTestCase extends AbstractDeploymentTestCase {
   }
 
   @Test
+  public void redeploysDomainAndAllApplicationsEvenWhenOneFails() throws Exception {
+    addExplodedDomainFromBuilder(dummyDomainFileBuilder, dummyDomainFileBuilder.getId());
+
+    addExplodedAppFromBuilder(dummyDomainApp1FileBuilder, dummyDomainApp1FileBuilder.getId());
+    addExplodedAppFromBuilder(dummyDomainApp2FileBuilder, dummyDomainApp2FileBuilder.getId());
+
+    startDeployment();
+
+    assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
+
+    assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyDomainApp1FileBuilder.getId());
+    assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyDomainApp2FileBuilder.getId());
+
+    reset(domainDeploymentListener);
+    reset(applicationDeploymentListener);
+
+    deploymentService.getLock().lock();
+    try {
+      doRedeployDummyDomainByChangingConfigFileWithGoodOne();
+      ApplicationFileBuilder updateAppDomainBuilder =
+          new ApplicationFileBuilder("dummy-domain-app1").definedBy("incomplete-app-config.xml");
+      addExplodedAppFromBuilder(updateAppDomainBuilder);
+    } finally {
+      deploymentService.getLock().unlock();
+    }
+
+    assertDomainRedeploymentFailure(dummyDomainFileBuilder.getId());
+    assertApplicationRedeploymentFailure(dummyDomainApp1FileBuilder.getId());
+    assertApplicationRedeploymentSuccess(dummyDomainApp2FileBuilder.getId());
+  }
+
+  @Test
   public void doesNotRedeployDomainWithRedeploymentDisabled() throws Exception {
     addExplodedDomainFromBuilder(dummyUndeployableDomainFileBuilder, dummyUndeployableDomainFileBuilder.getId());
     addPackedAppFromBuilder(emptyAppFileBuilder);

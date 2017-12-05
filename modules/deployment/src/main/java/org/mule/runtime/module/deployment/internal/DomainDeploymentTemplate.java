@@ -52,15 +52,24 @@ public final class DomainDeploymentTemplate implements ArtifactDeploymentTemplat
    */
   @Override
   public void postRedeploy(Artifact domain) {
-    // TODO(pablo.kraan): notifications - check that a domain redeploys all the apps even when one has failed (add test)
     if (domain != null && !domainApplications.isEmpty()) {
+      RuntimeException firstException = null;
       for (Application domainApplication : domainApplications) {
         applicationDeployer.preTrackArtifact(domainApplication);
         if (applicationDeployer.isUpdatedZombieArtifact(domainApplication.getArtifactName())) {
-          applicationDeployer.deployExplodedArtifact(domainApplication.getArtifactName(), empty());
+          try {
+            applicationDeployer.deployExplodedArtifact(domainApplication.getArtifactName(), empty());
+            applicationDeploymentListener.onRedeploymentSuccess(domainApplication.getArtifactName());
+          } catch (RuntimeException e) {
+            applicationDeploymentListener.onRedeploymentFailure(domainApplication.getArtifactName(), e);
+            if (firstException == null) {
+              firstException = e;
+            }
+          }
         }
-        // TODO(pablo.kraan): notifications - need to notify redeployment success/failure when domain is redeploying
-        applicationDeploymentListener.onRedeploymentSuccess(domainApplication.getArtifactName());
+      }
+      if (firstException != null) {
+        throw firstException;
       }
     }
     domainApplications = Collections.emptyList();

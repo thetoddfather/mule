@@ -138,6 +138,8 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
     assertUndeploymentSuccess(applicationDeploymentListener, applicationFileBuilder2.getId());
   }
 
+  // TODO(pablo.kraan): notifications - add test with domain bundle including updated versions of apps (like app-1.0.0 and app-1.0.1)
+
   @Test
   public void redeploysDomainBundleWithBrokenDomain() throws Exception {
     ApplicationFileBuilder applicationFileBuilder = new ApplicationFileBuilder(dummyAppDescriptorFileBuilder)
