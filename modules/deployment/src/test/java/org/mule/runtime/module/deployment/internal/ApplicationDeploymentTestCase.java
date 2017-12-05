@@ -583,8 +583,7 @@ public class ApplicationDeploymentTestCase extends AbstractDeploymentTestCase {
 
     File configFile = new File(appsDir + "/" + incompleteAppFileBuilder.getDeployedPath(),
                                getConfigFilePathWithinArtifact(MULE_CONFIG_XML_FILE));
-    assertThat(configFile.exists(), is(true));
-    configFile.setLastModified(configFile.lastModified() + FILE_TIMESTAMP_PRECISION_MILLIS);
+    updateFileModifiedTime(configFile.lastModified(), configFile);
 
     assertFailedApplicationRedeploymentFailure(applicationDeploymentListener, incompleteAppFileBuilder.getId());
   }

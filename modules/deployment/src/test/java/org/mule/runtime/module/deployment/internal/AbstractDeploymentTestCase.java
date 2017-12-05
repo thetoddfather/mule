@@ -157,9 +157,9 @@ import org.mockito.verification.VerificationMode;
  * <p>
  * Provides a set of test artifacts and resources to use on different test classes.
  */
-public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase {
+public abstract class AbstractDeploymentTestCase extends AbstractMuleTestCase {
 
-  protected static final int FILE_TIMESTAMP_PRECISION_MILLIS = 1000;
+  protected static final int FILE_TIMESTAMP_PRECISION_MILLIS = 2000;
   protected static final String FLOW_PROPERTY_NAME = "flowName";
   protected static final String COMPONENT_NAME = "componentValue";
   protected static final String COMPONENT_NAME_IN_APP = "component";
@@ -571,10 +571,9 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
     assertStatus(artifactName, STARTED);
   }
 
-  private void assertRedeploymentSuccess(DeploymentListener listener, String artifactName,
-                                         Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+  protected void assertRedeploymentSuccess(DeploymentListener listener, String artifactName,
+                                           Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
     assertRedeploymentStart(listener, artifactName);
-    assertDeploymentSuccess(listener, artifactName);
     assertRedeploymentSuccess(listener, artifactName);
     verify(listener, times(1)).onUndeploymentStart(artifactName);
     verify(listener, times(1)).onUndeploymentSuccess(artifactName);
@@ -599,8 +598,8 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
     });
   }
 
-  private void assertRedeploymentFailure(DeploymentListener listener, String artifactName,
-                                         Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
+  protected void assertRedeploymentFailure(DeploymentListener listener, String artifactName,
+                                           Supplier<Map<String, Map<URI, Long>>> zombieSupplier) {
     assertRedeploymentStart(listener, artifactName);
     assertDeploymentFailure(listener, artifactName);
     assertRedeploymentFailure(listener, artifactName);
@@ -842,7 +841,7 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
 
       @Override
       public String describeFailure() {
-        return "Application deployment was supposed to fail for: " + artifactName + super.describeFailure();
+        return getArtifactType(listener) + " deployment was supposed to fail for: " + artifactName + super.describeFailure();
       }
     });
   }
@@ -859,9 +858,23 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
 
       @Override
       public String describeFailure() {
-        return "Application redeployment was supposed to start for: " + artifactName + super.describeFailure();
+        return getArtifactType(listener) + " redeployment was supposed to start for: " + artifactName + super.describeFailure();
       }
     });
+  }
+
+  private String getArtifactType(DeploymentListener deploymentListener) {
+    String artifactType;
+    if (deploymentListener == applicationDeploymentListener) {
+      artifactType = "Application";
+    } else if (deploymentListener == domainDeploymentListener) {
+      artifactType = "Domain";
+    } else {
+      throw new IllegalArgumentException("Cannot determine the artifact type from deployment listener");
+    }
+
+    return artifactType;
+
   }
 
   protected void assertNoDeploymentInvoked(final DeploymentListener deploymentListener) {
@@ -1061,7 +1074,7 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
       // Need to update the config file lastModified ere to ensure that is different from previous value
       File configFile = new File(tempFolder, getConfigFilePathWithinArtifact(configFileName));
       if (configFile.exists()) {
-        configFile.setLastModified(System.currentTimeMillis() + FILE_TIMESTAMP_PRECISION_MILLIS);
+        configFile.setLastModified(currentTimeMillis() + FILE_TIMESTAMP_PRECISION_MILLIS);
       }
 
       File appFolder = new File(destinationDir, artifactName);
@@ -1323,5 +1336,17 @@ public abstract class   AbstractDeploymentTestCase extends AbstractMuleTestCase 
     } else {
       deploymentService.redeploy(id, deploymentProperties);
     }
+  }
+
+  /**
+   * Updates a file's last modified time to be greater than the original timestamp
+   *
+   * @param timestamp time value in milliseconds of the original file's last modified time
+   * @param file file to update
+   */
+  protected void updateFileModifiedTime(long timestamp, File file) {
+    do {
+      file.setLastModified(currentTimeMillis());
+    } while (file.lastModified() == timestamp);
   }
 }

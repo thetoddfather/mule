@@ -78,8 +78,7 @@ public class PatchDeploymentTestCase extends AbstractDeploymentTestCase {
         .withVersion(patchedVersion);
 
     addPackedAppFromBuilder(patchedApp);
-    // TODO(pablo.kraan): there is something wrong here... is a redeploy? what should be the artifactName that is notified?
-    assertUndeploymentSuccess(applicationDeploymentListener, deployedApp.getId());
+    assertRedeploymentSuccess(applicationDeploymentListener, deployedApp.getId(), deploymentService::getZombieApplications);
     assertApplicationDeploymentSuccess(applicationDeploymentListener, patchedApp.getId());
     assertThat(deploymentService.getApplications(), hasSize(1));
     assertAppsDir(NONE, new String[] {patchedApp.getId()}, true);
@@ -178,8 +177,7 @@ public class PatchDeploymentTestCase extends AbstractDeploymentTestCase {
         .definedBy("empty-domain-config.xml").withVersion(patchedVersion);
 
     addPackedDomainFromBuilder(patchedDomain);
-    // TODO(pablo.kraan): there is something wrong here... is a redeploy? what should be the artifactName that is notified?
-    assertUndeploymentSuccess(domainDeploymentListener, deployedDomain.getId());
+    assertRedeploymentSuccess(domainDeploymentListener, deployedDomain.getId(), deploymentService::getZombieDomains);
     assertDeploymentSuccess(domainDeploymentListener, patchedDomain.getId());
     assertThat(deploymentService.getDomains(), hasSize(2));
     assertDomainDir(NONE, new String[] {DEFAULT_DOMAIN_NAME, patchedDomain.getId()}, true);

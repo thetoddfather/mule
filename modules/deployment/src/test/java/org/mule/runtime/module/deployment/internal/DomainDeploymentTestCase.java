@@ -1131,8 +1131,8 @@ public class DomainDeploymentTestCase extends AbstractDeploymentTestCase {
 
     assertDomainRedeploymentSuccess(dummyDomainFileBuilder.getId());
 
-    assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyDomainApp1FileBuilder.getId());
-    assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyDomainApp2FileBuilder.getId());
+    assertApplicationRedeploymentSuccess(dummyDomainApp1FileBuilder.getId());
+    assertApplicationRedeploymentSuccess(dummyDomainApp2FileBuilder.getId());
   }
 
   @Test
@@ -1239,10 +1239,9 @@ public class DomainDeploymentTestCase extends AbstractDeploymentTestCase {
       deploymentService.getLock().unlock();
     }
 
-    assertDomainRedeploymentSuccess(dummyDomainFileBuilder.getId());
-
     assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyDomainApp1FileBuilder.getId());
     assertDeploymentFailure(applicationDeploymentListener, dummyDomainApp2FileBuilder.getId());
+    assertDomainRedeploymentFailure(dummyDomainFileBuilder.getId());
   }
 
   @Test
@@ -1360,6 +1359,7 @@ public class DomainDeploymentTestCase extends AbstractDeploymentTestCase {
         new File(domainsDir + File.separator + incompleteDomainFileBuilder.getId(), DEFAULT_CONFIGURATION_RESOURCE);
     URL url = getClass().getResource("/empty-domain-config.xml");
     File newConfigFile = new File(url.toURI());
+    updateFileModifiedTime(originalConfigFile.lastModified(), newConfigFile);
     copyFile(newConfigFile, originalConfigFile);
     assertFailedDomainRedeploymentSuccess(incompleteDomainFileBuilder.getId());
 

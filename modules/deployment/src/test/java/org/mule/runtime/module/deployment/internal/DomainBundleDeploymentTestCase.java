@@ -7,6 +7,9 @@
 
 package org.mule.runtime.module.deployment.internal;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.mockito.Mockito.reset;
 import static org.mule.runtime.deployment.model.api.domain.DomainDescriptor.DEFAULT_DOMAIN_NAME;
 import org.mule.runtime.module.deployment.impl.internal.builder.ApplicationFileBuilder;
@@ -97,14 +100,9 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
 
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
-    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
+    assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
     assertDomainRedeploymentSuccess(dummyDomainFileBuilder.getId());
-    //assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
-    //assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    //assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertUndeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
-    assertApplicationDeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
-    //assertApplicationRedeploymentSuccess(dummyAppDescriptorFileBuilder.getId());
+    assertApplicationRedeploymentSuccess(dummyAppDescriptorFileBuilder.getId());
   }
 
   @Test
@@ -133,15 +131,11 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
     domainBundleFileBuilder = new DomainBundleFileBuilder(dummyDomainFileBuilder).containing(applicationFileBuilder1);
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
-    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
-    //assertDomainRedeploymentSuccess(domainBundleFileBuilder.getId());
     assertDeploymentSuccess(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
-    assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertDeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertUndeploymentSuccess(applicationDeploymentListener, applicationFileBuilder1.getId());
-    assertApplicationDeploymentSuccess(applicationDeploymentListener, applicationFileBuilder1.getId());
+    assertDomainRedeploymentSuccess(dummyDomainFileBuilder.getId());
+    assertApplicationRedeploymentSuccess(applicationFileBuilder1.getId());
+    // TODO(pablo.kraan): notifications - this must be assertRedeploymentFailure as the app does not exists anymore
     assertUndeploymentSuccess(applicationDeploymentListener, applicationFileBuilder2.getId());
-    //assertApplicationRedeploymentSuccess(applicationFileBuilder1.getId());
   }
 
   @Test
@@ -167,14 +161,12 @@ public class DomainBundleDeploymentTestCase extends AbstractDeploymentTestCase {
     domainBundleFileBuilder = new DomainBundleFileBuilder(dummyDomainFileBuilder).containing(applicationFileBuilder);
     addDomainBundleFromBuilder(domainBundleFileBuilder);
 
-    // TODO(pablo.kraan): why is not notifying a redeploy for both the domain and the app?
-    //assertDomainRedeploymentFailure(domainBundleFileBuilder.getId());
+
     assertDeploymentFailure(domainBundleDeploymentListener, domainBundleFileBuilder.getId());
-    assertUndeploymentSuccess(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertDeploymentFailure(domainDeploymentListener, dummyDomainFileBuilder.getId());
-    assertUndeploymentSuccess(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
-    assertDeploymentFailure(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId());
-    //assertApplicationRedeploymentFailure(dummyAppDescriptorFileBuilder.getId());
+    assertDomainRedeploymentFailure(dummyDomainFileBuilder.getId());
+    assertRedeploymentFailure(applicationDeploymentListener, dummyAppDescriptorFileBuilder.getId(),
+                              deploymentService::getZombieApplications);
+    assertThat(deploymentService.findApplication(dummyAppDescriptorFileBuilder.getId()), is(nullValue()));
   }
 
   private void addDomainBundleFromBuilder(DomainBundleFileBuilder domainBundleFileBuilder) throws Exception {
