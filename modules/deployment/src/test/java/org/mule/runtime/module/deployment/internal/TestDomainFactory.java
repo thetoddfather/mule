@@ -17,6 +17,7 @@ import org.mule.runtime.deployment.model.internal.plugin.PluginDependenciesResol
 import org.mule.runtime.module.artifact.api.classloader.ArtifactClassLoader;
 import org.mule.runtime.module.artifact.api.classloader.ClassLoaderRepository;
 import org.mule.runtime.module.artifact.api.classloader.TrackingArtifactClassLoaderFactory;
+import org.mule.runtime.module.artifact.api.descriptor.ArtifactDescriptorValidatorBuilder;
 import org.mule.runtime.module.artifact.api.descriptor.DescriptorLoaderRepository;
 import org.mule.runtime.module.deployment.impl.internal.artifact.DefaultClassLoaderManager;
 import org.mule.runtime.module.deployment.impl.internal.domain.DefaultDomainFactory;
@@ -50,7 +51,8 @@ public class TestDomainFactory extends DefaultDomainFactory {
     ArtifactPluginDescriptorLoader artifactPluginDescriptorLoader =
         new ArtifactPluginDescriptorLoader(artifactPluginDescriptorFactory);
     DomainDescriptorFactory domainDescriptorFactory =
-        new DomainDescriptorFactory(artifactPluginDescriptorLoader, descriptorLoaderRepository);
+        new DomainDescriptorFactory(artifactPluginDescriptorLoader, descriptorLoaderRepository,
+                                    ArtifactDescriptorValidatorBuilder.builder());
     final DefaultClassLoaderManager artifactClassLoaderManager = new DefaultClassLoaderManager();
     PluginDependenciesResolver pluginDependenciesResolver = new BundlePluginDependenciesResolver(artifactPluginDescriptorFactory);
 
