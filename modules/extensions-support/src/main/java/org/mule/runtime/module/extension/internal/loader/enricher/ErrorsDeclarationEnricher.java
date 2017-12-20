@@ -13,8 +13,11 @@ import static org.mule.runtime.extension.api.loader.DeclarationEnricherPhase.INI
 import static org.mule.runtime.module.extension.internal.util.MuleExtensionUtils.getExtensionsErrorNamespace;
 import org.mule.runtime.api.exception.MuleRuntimeException;
 import org.mule.runtime.api.meta.model.ExtensionModel;
+import org.mule.runtime.api.meta.model.declaration.fluent.ComponentDeclaration;
+import org.mule.runtime.api.meta.model.declaration.fluent.ConstructDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.ExtensionDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.OperationDeclaration;
+import org.mule.runtime.api.meta.model.declaration.fluent.WithConstructsDeclaration;
 import org.mule.runtime.api.meta.model.declaration.fluent.WithOperationsDeclaration;
 import org.mule.runtime.api.meta.model.operation.OperationModel;
 import org.mule.runtime.api.util.Pair;
@@ -79,7 +82,7 @@ public class ErrorsDeclarationEnricher implements DeclarationEnricher {
 
       ExtensionElement extensionElement = new ExtensionTypeWrapper<>(implementingType.get().getType());
       Optional<ErrorTypes> errorAnnotation = extensionElement.getAnnotation(ErrorTypes.class);
-      List<Pair<OperationDeclaration, MethodElement>> errorOperations = collectErrorOperations(declaration);
+      List<Pair<ComponentDeclaration, MethodElement>> errorOperations = collectErrorOperations(declaration);
 
       if (errorAnnotation.isPresent()) {
         ErrorTypeDefinition<?>[] errorTypes = (ErrorTypeDefinition<?>[]) errorAnnotation.get().value().getEnumConstants();
@@ -101,7 +104,7 @@ public class ErrorsDeclarationEnricher implements DeclarationEnricher {
   }
 
   private void handleNoErrorTypes(ExtensionElement extensionElement,
-                                  List<Pair<OperationDeclaration, MethodElement>> errorOperations)
+                                  List<Pair<ComponentDeclaration, MethodElement>> errorOperations)
       throws IllegalModelDefinitionException {
 
     long illegalOps = errorOperations.stream().filter(p -> p.getSecond().isAnnotatedWith(Throws.class)).count();
@@ -114,25 +117,32 @@ public class ErrorsDeclarationEnricher implements DeclarationEnricher {
     }
   }
 
-  private List<Pair<OperationDeclaration, MethodElement>> collectErrorOperations(ExtensionDeclaration declaration) {
-    List<Pair<OperationDeclaration, MethodElement>> operations = new LinkedList<>();
+  private List<Pair<ComponentDeclaration, MethodElement>> collectErrorOperations(ExtensionDeclaration declaration) {
+    List<Pair<ComponentDeclaration, MethodElement>> operations = new LinkedList<>();
     new IdempotentDeclarationWalker() {
 
       @Override
       public void onOperation(WithOperationsDeclaration owner, OperationDeclaration declaration) {
-        Optional<ImplementingMethodModelProperty> modelProperty =
-            declaration.getModelProperty(ImplementingMethodModelProperty.class);
-
-        if (modelProperty.isPresent()) {
-          operations.add(new Pair<>(declaration, new MethodWrapper(modelProperty.get().getMethod())));
-        }
+        addComponent(declaration);
       }
+
+      @Override
+      protected void onConstruct(WithConstructsDeclaration owner, ConstructDeclaration declaration) {
+        addComponent(declaration);
+      }
+
+      private void addComponent(ComponentDeclaration<?> declaration) {
+        declaration.getModelProperty(ImplementingMethodModelProperty.class)
+            .ifPresent(implementingMethodModelProperty -> operations
+                .add(new Pair<>(declaration, new MethodWrapper(implementingMethodModelProperty.getMethod()))));
+      }
+
     }.walk(declaration);
 
     return operations;
   }
 
-  private void registerOperationErrorTypes(MethodElement operationMethod, OperationDeclaration operation,
+  private void registerOperationErrorTypes(MethodElement operationMethod, ComponentDeclaration operation,
                                            ErrorsModelFactory errorModelDescriber,
                                            ErrorTypeDefinition<?>[] extensionErrorTypes, ExtensionElement extensionElement,
                                            LoadingCache<Class<?>, TypeWrapper> typeWrapperCache) {
